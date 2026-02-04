@@ -1,0 +1,15 @@
+#Virutal environment
+venv/
+
+#Python cache
+__pycache__/
+*.pyc
+
+#Environment variables
+.env
+
+#Generated outputs
+outputs/
+
+#OS junk
+.DS_Store
