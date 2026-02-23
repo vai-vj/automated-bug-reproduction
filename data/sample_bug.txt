@@ -1,0 +1,12 @@
+Title: Login button unresponsive
+
+Users report that clicking on the Login button does nothing.
+This occurs on Chrome 121 on Windows.
+
+Steps attempted:
+1. Open the login page
+2. Enter valid credentials
+3. Click Login
+
+Expected: User should be redirected to dashboard
+Actual: Nothing happens
