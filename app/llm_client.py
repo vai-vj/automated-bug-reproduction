@@ -5,14 +5,17 @@ load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
+
 def call_llm(incident_text: str) -> str:
     prompt = f"""
 You are a software QA assistant.
 
-Given the following incident report, describe:
-1. Possible reproduction steps
-2. Preconditions
-3. Expected vs actual behavior
+Return JSON with EXACT keys:
+reproduction_steps: list of strings
+preconditions: list of strings
+expected_behavior: string
+actual_behavior: string
 
 Incident report:
 {incident_text}
@@ -22,80 +25,38 @@ Incident report:
         model="gpt-4o-mini",
         messages=[
             {"role": "user", "content": prompt}
-        ]
+        ],
+        response_format={"type": "json_object"}
     )
 
     return response.choices[0].message.content
 
 
-# from openai import OpenAI
-# import os
-# from dotenv import load_dotenv
 
 
-# load_dotenv()
 
-# client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-
-# def call_llm(report_text: str) -> str:
+# def call_llm(incident_text: str) -> str:
 #     prompt = f"""
-#     You are a software QA assistant.
+# You are a software QA assistant.
 
-#     Given the following bug report, describe:
-#     1. Possible reproduction steps
-#     2. Preconditions
-#     3. Expected vs. actual behavior
+# Given the following incident report, return a valid JSON with the exact keys:
+# 1. reproduction_steps: list of strings
+# 2. preconditions: list of strings
+# 3. expected_behavior: string
+# 4. actual_behavior: string
 
-#     Bug Report:
-#     {report_text}
-#     """
+# Do not include any explanations, numbers, or extra text. Only return the JSON object.
 
-#     response = client.chat_completions.create(
-#         messages=[ {"role": "user", "content": prompt} ],
-#         max_tokens=400,
-#         temperature=0.3
+# Incident report:
+# {incident_text}
+# """
+
+#     response = client.chat.completions.create(
+#         model="gpt-4o-mini",
+#         response_format={"type": "json_object"},
+#         # message=[
+#         #     {"role": "user", "content": prompt}
+#         # ]
 #     )
-#     return response.choices[0].message.content
 
-
-
-
-
-
-
-
-
-
-
-# # from huggingface_hub import InferenceClient
-# # import os
-# # from dotenv import load_dotenv
-
-# # load_dotenv()
-
-# # client = InferenceClient(
-# #     model="mistralai/Mistral-7B-Instruct-v0.2",
-# #     token="REMOVEDqfYDHTGbUAPiQMDuQyELSAjGNKATfhBggc"
-# # )
-
-# # def call_llm(report_text: str) -> str:
-# #     prompt = f"""
-# # You are a software QA assistant.
-
-# # Given the following bug report, describe:
-# # 1. Possible reproduction steps
-# # 2. Preconditions
-# # 3. Expected vs. actual behavior
-
-# # Bug Report:
-# # {report_text}
-# # """
-
-# #     response = client.text_generation(
-# #         prompt,
-# #         max_new_tokens=400,
-# #         temperature=0.3
-# #     )
-
-# #     return response
+#     return response.choices[0].message.content.strip() #strip to remove any leading/trailing whitespace
