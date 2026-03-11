@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.llm_client import call_llm
 from app.models import BugReportOutput
+from pydantic import BaseModel
 from dotenv import load_dotenv
 import json
 import os
@@ -36,7 +37,6 @@ def debug_llm():
 #validate JSON using Pydantic model
 @app.get("/test-json")
 def test_json():
-    ####report = "Submit button crashes the app when clicked without filling the form."
     #read sample bug report from file
     with open("data/sample_bug.txt", "r") as f:
         report_text = f.read()
@@ -56,3 +56,4 @@ def test_json():
         return {"error": str(e), "raw response": response_text}
     
     return{"structured_output": bug_output.dict()}
+
