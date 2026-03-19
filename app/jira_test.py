@@ -1,50 +1,5 @@
-import requests
-from requests.auth import HTTPBasicAuth
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-email = os.getenv("JIRA_EMAIL")
-api_token = os.getenv("JIRA_API_TOKEN")
-domain = os.getenv("JIRA_DOMAIN")
-
-
-# New JQL search endpoint
-url = f"{domain}/rest/api/3/search/jql"
-
-params = {
-    "jql": "project = AIBUG",
-    "maxResults": 5,
-    "fields": ["summary", "description"]
-}
-
-response = requests.get(
-    url,
-    auth=HTTPBasicAuth(email, api_token),
-    headers={"Accept": "application/json"},
-    params=params
-)
-
-data = response.json()
-
-print(data["issues"][0])
-print(data["issues"][1])
-
-'''debugging to check if issues are being fetched correctly and to understand the structure of the response'''
-# if "issues" in data:
-#     for issue in data["issues"]:
-#         issue_key = issue.get("key", "NoKey")
-#         summary = issue.get("fields", {}).get("summary", "No summary")
-#         description = issue.get("fields", {}).get("description", "No description")
-#         print(issue_key, ":", summary)
-#         print("Description:", description)
-#         print("---")
-# else:
-#     print("No issues found.")
-
-
 #extract plain text from ADF (Atlassian Document Format) content
-def extract_text(adf_content):
+def extract_plain_text(adf_content):
     text_parts = []
 
     def traverse(nodes):
@@ -67,15 +22,49 @@ def extract_text(adf_content):
     return ''.join(text_parts)
 
 
-for issue in data["issues"]:
-    key = issue["key"]
-    summary = issue["fields"]["summary"]
-    description_adf = issue["fields"]["description"]
-    description_text = extract_text(description_adf)
 
-    print(key, ":", summary)
-    print(description_text)
-    print("---")
+
+# import requests
+# from requests.auth import HTTPBasicAuth
+# import os
+# from dotenv import load_dotenv
+# load_dotenv()
+
+# email = os.getenv("JIRA_EMAIL")
+# api_token = os.getenv("JIRA_API_TOKEN")
+# domain = os.getenv("JIRA_DOMAIN")
+
+
+# # New JQL search endpoint
+# url = f"{domain}/rest/api/3/search/jql"
+
+# params = {
+#     "jql": "project = AIBUG",
+#     "maxResults": 1,                        #5 synthetic bugs
+#     "fields": ["summary", "description"]
+# }
+
+# response = requests.get(
+#     url,
+#     auth=HTTPBasicAuth(email, api_token),
+#     headers={"Accept": "application/json"},
+#     params=params
+# )
+
+# data = response.json()
+
+
+
+
+# for issue in data["issues"]:
+#     key = issue["key"]
+#     summary = issue["fields"]["summary"]
+#     description_adf = issue["fields"]["description"]
+#     description_text = extract_plain_text(description_adf)
+
+#     print(key, ":", summary)
+#     print(description_text)
+#     print("---")
 
 
 
