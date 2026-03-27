@@ -1,0 +1,6 @@
+Title: Not sending password reset email
+
+Users report that clicking on the reset password button advances to next page but not sending them email
+This occurs on Chrome 121 on Windows.
+
+Steps tried: Clicked forget password, entered email, Click reset password button
