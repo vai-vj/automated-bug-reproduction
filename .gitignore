@@ -16,6 +16,3 @@ output/*
 .DS_Store
 Thumbs.db
 
-#TESTING FILES >>> TO BE REMOVED
-llm_client copy.py
-

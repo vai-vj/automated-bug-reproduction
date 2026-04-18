@@ -1,0 +1,13 @@
+Bug: Login fails with correct credentials
+
+Steps to reproduce:
+1. Go to https://the-internet.herokuapp.com/login
+2. Enter username "tomsmith"
+3. Enter password "SuperSecretPassword!"
+4. Click login button
+
+Expected:
+User logs in successfully
+
+Actual:
+Login fails or behaves unexpectedly

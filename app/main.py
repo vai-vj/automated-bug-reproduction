@@ -1,15 +1,16 @@
 import os
 import json
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
 from requests.auth import HTTPBasicAuth
 
-from app.llm_client import call_llm
-from app.models import BugReportOutput
-from app.utils import extract_plain_text, clean_json, save_output
+from app.services.llm_client import call_llm, generate_confidence_report
+from app.schemas.models import BugReportOutput
+from app.utils import utils
+from app.services.playwright_services import generate_playwright_test, save_test_file, run_playwright_test
 
 
 #get environment variables from .env file
@@ -34,29 +35,28 @@ def root():
 
 
 #fetches file from filepath, extracts description, calls LLM, validates output, saves to file, returns structured data and file location
-@app.get("/process-file")
+@app.get("/process-file", include_in_schema=False)
 def process_file(filepath: str):
-    #read sample bug report from file
+
+    #Check if filepath exists/ valid
+    if not filepath.endswith(".txt"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Only .txt files are supported"
+        )
+    elif not os.path.exists(filepath):
+        raise HTTPException(
+            status_code=404, 
+            detail="File not found"
+        )
+
+    #read bug report from file
     with open(filepath, "r") as f:
         report_text = f.read()
         
-    #call LLM and store raw output 
-    llm_raw_response = call_llm(report_text)
-
-    #validate and parse LLM output using Pydantic model
-    try:
-        data = json.loads(clean_json(llm_raw_response))
-        bug_output = BugReportOutput(**data)
-    except Exception as e:
-        return {"error": str(e), "raw response": llm_raw_response}
+    bug_output = process_bug_text(report_text)
     
-    #save output to file
-    filepath = save_output(bug_output.dict(), prefix="file")
-
-    return{
-        "structured_output": bug_output.dict(),
-        "location_saved": filepath
-        }
+    return build_response(bug_output, prefix="file", original_text=report_text)
 
 
 #---------------------------------------------------------------------------------------------
@@ -65,56 +65,21 @@ class JiraKeyRequest(BaseModel):
     jira_key: str
 
 #Fetches Jira issue, extracts description, calls LLM, validates output, saves to file, returns structured data and file location
-@app.post("/process-jira-bug")
+@app.post("/process-jira-bug", include_in_schema=False)
 def process_jira_bug(jira_request: JiraKeyRequest):
     #Extract jira key from request body
     jira_key = jira_request.jira_key
 
-    #Load credentials
-    email = os.getenv("JIRA_EMAIL")
-    api_token = os.getenv("JIRA_API_TOKEN")
-    domain = os.getenv("JIRA_DOMAIN")
-
-    #Call Jira API & fetch Jira issue
-    url = f"{domain}/rest/api/3/issue/{jira_key}"
-    response = requests.get(
-        url,
-        auth=HTTPBasicAuth(email, api_token),
-        headers={"Accept": "application/json"}
-    )
-
-    #Error if Jira request fails
-    if response.status_code != 200:
-        return {"error": f"Jira returned {response.status_code}"}
-
-    issue = response.json()
-
-    #Extract ADF formatted description from Jira issue
-    description_adf = issue["fields"]["description"]
-    if not description_adf:
-        return {"error": f"Issue {jira_key} has no description"}
-
-    #Convert ADF to plain text and send to LLM for processing
-    description_text = extract_plain_text(description_adf)
-    llm_response = call_llm(description_text)
-
-    #validate and parse LLM output using Pydantic model
-    try:
-        data = json.loads(clean_json(llm_response))
-        bug_output = BugReportOutput(**data)
-    except Exception as e:
-        return {"error": str(e), "raw_response": llm_response}
+    report_text = fetch_jira_description(jira_key)
+    bug_output = process_bug_text(report_text)
     
-    #save output to file
-    filepath = save_output(bug_output.dict(), prefix=jira_key)
+    response = build_response(bug_output, prefix=jira_key, original_text=report_text)
+    response["jira_key"] = jira_key
 
-    return {
-        "jira_key": jira_key,
-        "structured_output": bug_output.dict(),
-        "location_saved": filepath
-    }
+    return response
 
 
+#---------------------------------------------------------------------------------------------
 @app.post("/analyze", 
           summary="Analayze a bug report from Jira or a file", 
           description="Provide either a Jira key or a file path to analyze a bug report. The response will contain structured information extracted from the report.")
@@ -127,35 +92,109 @@ def analyze_bug(
     #If input type is Jira, ensure jira_key is provided and valid, then process Jira bug
     if input_type.lower() == "jira" or input_type.lower() == "jira_key":
         if not jira_key:
-            return {"error": "jira_key is required for jira input type"}
+            raise HTTPException(
+                status_code=400, 
+                detail="jira_key is required for Jira input type"
+            )
         return process_jira_bug(JiraKeyRequest(jira_key=jira_key))
     
     #If input type is file, ensure filepath is provided and valid, then process file
     elif input_type.lower() == "file" or input_type.lower() == "filepath":
         if not filepath:
-            return {"error": "filepath is required for file input type"}
+            raise HTTPException(
+                status_code=400,
+                detail="filepath is required for file input type"
+            )
         return process_file(filepath)
     else:
-        return {"error": "Invalid input type. Enter 'jira' or 'file'."}
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid input_type. Must be 'jira' or 'file'"
+        )
 
 
+def process_bug_text(report_text: str):
+    #call LLM and store raw output 
+    llm_raw_response = call_llm(report_text)
 
-#validate JSON using Pydantic model
-# @app.get("/test-json")
-# def test_json():
-#     #read sample bug report from file
-#     with open("data/sample_bug.txt", "r") as f:
-#         report_text = f.read()
-        
-#     llm_raw_response = call_llm(report_text)
-
-#     try:
-#         data = json.loads(clean_json(llm_raw_response))
-#         bug_output = BugReportOutput(**data)
-#     except Exception as e:
-#         return {"error": str(e), "raw response": llm_raw_response}
+    #validate and parse LLM output using Pydantic model
+    try:
+        data = json.loads(utils.clean_json(llm_raw_response))
+        return BugReportOutput(**data)
     
-#     return{"structured_output": bug_output.dict()}
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=500,
+            detail=f"LLM returned invalid JSON format"
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to parse LLM output: {str(e)}"
+        )
 
 
+def run_playwright_pipeline(test_steps, prefix="playwright"):
+    # Generate Playwright test
+    test_code = generate_playwright_test(test_steps)
+    # Save test file
+    test_filepath = save_test_file(test_code, prefix=prefix)
+    # Run test
+    execution_result = run_playwright_test(test_filepath)
+    return test_filepath, execution_result
 
+def build_response(bug_output, prefix, original_text):
+    test_filepath, execution_result = run_playwright_pipeline(
+        bug_output.test_steps, prefix
+    )
+
+    output_path = utils.save_output(bug_output.dict(), prefix=prefix)
+
+    confidence_report = generate_confidence_report(
+        original_text,
+        bug_output.test_steps
+    )   
+
+    return {
+        "structured_output": bug_output.dict(),
+        "confidence_report": confidence_report.dict(),
+        "location_saved": output_path,
+        "test_file": test_filepath,
+        "execution_result": execution_result
+    }
+
+def fetch_jira_description(jira_key: str):
+    email = os.getenv("JIRA_EMAIL")
+    api_token = os.getenv("JIRA_API_TOKEN")
+    domain = os.getenv("JIRA_DOMAIN")
+
+    url = f"{domain}/rest/api/3/issue/{jira_key}"
+    response = requests.get(
+        url,
+        auth=HTTPBasicAuth(email, api_token),
+        headers={"Accept": "application/json"}
+    )
+
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Issue {jira_key} not found in Jira"
+        )
+    
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to fetch issue {jira_key} from Jira: {response.text}"
+        )
+
+    issue = response.json()
+    description_adf = issue["fields"]["description"]
+
+    if not description_adf:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Issue {jira_key} does not have a description"
+        )
+
+    return utils.extract_plain_text(description_adf)
