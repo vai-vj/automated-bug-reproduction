@@ -8,7 +8,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from app.services.llm_client import call_llm, generate_confidence_report
-from app.schemas.models import BugReportOutput
+from app.schemas.models import BugReportOutput, JiraKeyRequest
 from app.utils import utils
 from app.services.playwright_services import generate_playwright_test, save_test_file, run_playwright_test
 
@@ -60,9 +60,6 @@ def process_file(filepath: str):
 
 
 #---------------------------------------------------------------------------------------------
-#Ensures jira_key is provided in request body and is valid
-class JiraKeyRequest(BaseModel):
-    jira_key: str
 
 #Fetches Jira issue, extracts description, calls LLM, validates output, saves to file, returns structured data and file location
 @app.post("/process-jira-bug", include_in_schema=False)
