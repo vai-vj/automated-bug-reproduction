@@ -1,0 +1,20 @@
+{
+  "reproduction_steps": [
+    "Go to https://the-internet.herokuapp.com/login",
+    "Enter username 'tomsmith'",
+    "Enter password 'SuperSecretPassword!'",
+    "Click login button"
+  ],
+  "preconditions": [
+    "User has a valid account with username 'tomsmith' and password 'SuperSecretPassword!'",
+    "User is on the login page"
+  ],
+  "expected_behavior": "User logs in successfully",
+  "actual_behavior": "Login fails or behaves unexpectedly",
+  "test_steps": [
+    "Go to https://the-internet.herokuapp.com/login",
+    "Enter 'tomsmith' into username field",
+    "Enter 'SuperSecretPassword!' into password field",
+    "Click on login button"
+  ]
+}

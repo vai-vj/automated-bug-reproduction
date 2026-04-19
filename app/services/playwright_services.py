@@ -1,11 +1,6 @@
 import os
-from datetime import datetime
 import subprocess
 import sys
-
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-TEST_DIR = os.path.join(BASE_DIR, "generated_tests")
-
 
 def generate_playwright_test(test_steps, test_name="generated_test"):
     steps_code = []
@@ -90,12 +85,8 @@ if __name__ == "__main__":
 
 
 
-def save_test_file(code, prefix="exec_test"):
-    timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
-    filename = f"{prefix}_{timestamp}.py"
-    filepath = os.path.join(TEST_DIR, filename)
-
-    os.makedirs(TEST_DIR, exist_ok=True)
+def save_playwright_file(code, folder_path, filename="playwright_text.py"):
+    filepath = os.path.join(folder_path, filename)
 
     with open(filepath, "w") as f:
         f.write(code)

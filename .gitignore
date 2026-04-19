@@ -8,9 +8,14 @@ __pycache__/
 #Environment variables
 .env
 
-#ignore generated files but keep the output folder
+#ignore everything in input & output folders
+input/*
 output/*
-!output/.gitkeep
+
+#keep example files/folders
+!input/bugfile.txt
+!output/file_04192026_151917/
+!output/file_04192026_151917/**
 
 #OS junk
 .DS_Store

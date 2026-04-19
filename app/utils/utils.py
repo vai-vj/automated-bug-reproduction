@@ -2,6 +2,8 @@ import os
 import json
 from datetime import datetime
 
+
+
 #Clean JSON from LLM (remove extra whitespace and backticks)
 def clean_json(text):
         text = text.strip()
@@ -36,15 +38,19 @@ def extract_plain_text(adf_content):
     return ''.join(text_parts)
 
 
-#save structured JSON output to file with timestamped filename & jira_key / file prefix
-def save_output(data, prefix=""):
+#create timestamped folder for saving each output file
+def create_save_folder(prefix: str):
     timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
-    filename = f"{prefix}_{timestamp}.json"
-    filepath = os.path.join("output", filename)
+    folder_name = f"{prefix}_{timestamp}"
+    folder_path = os.path.join("output", folder_name)
+    
+    os.makedirs(folder_path, exist_ok=True)
+    return folder_path
 
+
+#save structured JSON output to file with timestamped filename & jira_key / file prefix
+def save_json(data, filepath):
     #store output in output folder
     with open(filepath, "w") as f:
         #Write JSON to file with indentation
         json.dump(data, f, indent=2)
-
-    return filepath
