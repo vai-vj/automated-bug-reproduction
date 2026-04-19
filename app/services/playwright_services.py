@@ -3,12 +3,15 @@ from datetime import datetime
 import subprocess
 import sys
 
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+TEST_DIR = os.path.join(BASE_DIR, "generated_tests")
+
 
 def generate_playwright_test(test_steps, test_name="generated_test"):
     steps_code = []
     url = None
 
-    # -------- STEP 1: Extract URL --------
+    #STEP 1: Extract URL
     for step in test_steps:
         step_lower = step.lower()
         if ("go to" in step_lower or "navigate" in step_lower) and not url:
@@ -20,13 +23,13 @@ def generate_playwright_test(test_steps, test_name="generated_test"):
     steps_code.append(f'        page.goto("{url}")')
     steps_code.append('        page.wait_for_timeout(1000)')
 
-    # -------- STEP 2: Detect login flow --------
+    #STEP 2: Detect login flow
     is_login_flow = any(
         "login" in step.lower() or "username" in step.lower() or "password" in step.lower()
         for step in test_steps
     )
 
-    # -------- STEP 3: SAFE DEMO (login handling) --------
+    #STEP 3: SAFE DEMO (login handling)
     if "the-internet.herokuapp.com/login" in url or is_login_flow:
         steps_code.extend([
             '        # Fill username field',
@@ -43,7 +46,7 @@ def generate_playwright_test(test_steps, test_name="generated_test"):
         ])
 
     else:
-        # -------- GENERIC FALLBACK --------
+        #GENERIC FALLBACK
         for step in test_steps:
             step_lower = step.lower()
 
@@ -65,7 +68,7 @@ def generate_playwright_test(test_steps, test_name="generated_test"):
 
             steps_code.append('        page.wait_for_timeout(1000)')
 
-    # -------- FINAL CODE --------
+    #FINAL CODE
     code = f"""
 from playwright.sync_api import sync_playwright
 
@@ -90,9 +93,9 @@ if __name__ == "__main__":
 def save_test_file(code, prefix="exec_test"):
     timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
     filename = f"{prefix}_{timestamp}.py"
-    filepath = os.path.join("generated_tests", filename)
+    filepath = os.path.join(TEST_DIR, filename)
 
-    os.makedirs("generated_tests", exist_ok=True)
+    os.makedirs(TEST_DIR, exist_ok=True)
 
     with open(filepath, "w") as f:
         f.write(code)
@@ -100,10 +103,10 @@ def save_test_file(code, prefix="exec_test"):
     return filepath
 
 
+
 def run_playwright_test(filepath):
-    """
-    Executes the generated Playwright test file
-    """
+
+    #Executes the generated Playwright test file
     try:
         result = subprocess.run(
             [sys.executable, filepath],

@@ -2,7 +2,9 @@ def build_bug_repro_prompt(incident_text: str) -> str:
     return f"""
 You are a QA automation assistant.
 
-Return ONLY valid JSON with EXACT keys:
+Return ONLY a valid JSON object. The response MUST be in JSON format
+
+Required EXACT JSON keys:
 reproduction_steps: list of strings
 preconditions: list of strings
 expected_behavior: string
@@ -49,7 +51,9 @@ Analyze:
 3. Provide a brief resoning for your confidence rating based on the completeness and clarity of the steps.
 4. Assess the risk level of relying on these steps for reproduction (low, medium, high). Do not explain this. 
 
-Return ONLY valid JSON with EXACT keys:
+Return ONLY a valid JSON object. The response MUST be in JSON format.
+
+Required JSON structure:
 {{
     "confidence": float,
     "missing_information": list of strings,
